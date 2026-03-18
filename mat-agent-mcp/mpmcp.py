@@ -1,11 +1,9 @@
 from datetime import datetime
 
 from fastmcp import FastMCP
-import asyncio
 import os
 import pandas as pd
 from mp_api.client import MPRester
-from pydantic import BaseModel
 from pymatgen.core import Structure
 from pymatgen.io.cif import CifWriter
 import matplotlib.pyplot as plt
@@ -13,12 +11,9 @@ from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from pymatgen.core import Lattice
 from pymatgen.io.ase import AseAtomsAdaptor
 from ase.io import write
-from ase.visualize import view
 import multiprocessing
 import flask_builder
 import flask_plot
-import duckdb
-import pickle
 import loadenv
 import databasemanage
 import tryssh
@@ -1235,17 +1230,17 @@ async def read_file(file_path: str) -> dict:
 if __name__ == "__main__":
     try:
         # 启动MCP服务器
-        connection = tryssh.VaspTaskInitializer(HOST, USERNAME, PASSWORD, PORT)
-        for i in range(5):
-            try:
-                with connection as vasp_task:
-                    if vasp_task.link():
-                        print("已成功连接到远程服务器")
-                        break
-            except Exception as e:
-                print(f"连接远程服务器失败，正在重试... ({i+1}/5)")
-                if i == 4:
-                    raise e
+        # connection = tryssh.VaspTaskInitializer(HOST, USERNAME, PASSWORD, PORT)
+        # for i in range(5):
+        #     try:
+        #         with connection as vasp_task:
+        #             if vasp_task.link():
+        #                 print("已成功连接到远程服务器")
+        #                 break
+        #     except Exception as e:
+        #         print(f"连接远程服务器失败，正在重试... ({i+1}/5)")
+        #         if i == 4:
+        #             raise e
         server = flask_plot.MemoryImageServer(port=6760)
         server.start()
         crystalmanager = flask_builder.CrystalManager()

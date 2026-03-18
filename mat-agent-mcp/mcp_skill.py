@@ -26,14 +26,42 @@ class MCPAgentSkill:
         self.mcp_url = mcp_url
         self.client = Client(mcp_url)
 
-    async def _call_tool_async(self, tool_name: str, arguments: Optional[Dict[str, Any]] = None) -> Any:
+    def _convert_result(self, result):
+        """将MCP返回的结果转换为Python字典"""
+        import json
+
+        if result is None:
+            return None
+
+        if isinstance(result, dict):
+            return result
+
+        if isinstance(result, list):
+            return [self._convert_result(item) for item in result]
+
+        if hasattr(result, "text"):
+            try:
+                return json.loads(result.text)
+            except (json.JSONDecodeError, AttributeError):
+                return {"result": result.text}
+
+        if hasattr(result, "json"):
+            return result.json
+
+        return {"result": str(result)}
+
+    async def _call_tool_async(
+        self, tool_name: str, arguments: Optional[Dict[str, Any]] = None
+    ) -> Any:
         arguments = arguments or {}
         async with self.client as c:
             result = await c.call_tool(tool_name, arguments)
-        # `call_tool` returns a list of MCPContent; unify.
+        # 转换 MCP 结果为 Python 字典
         if isinstance(result, list) and len(result) == 1:
-            return result[0]
-        return result
+            return self._convert_result(result[0])
+        elif isinstance(result, list):
+            return self._convert_result(result)
+        return self._convert_result(result)
 
     async def _list_tools_async(self) -> List[str]:
         async with self.client as c:
@@ -50,7 +78,9 @@ class MCPAgentSkill:
         """列出当前 mcp 服务中的可用工具名称。"""
         return self._run_async(self._list_tools_async())
 
-    def call_tool(self, tool_name: str, arguments: Optional[Dict[str, Any]] = None) -> Any:
+    def call_tool(
+        self, tool_name: str, arguments: Optional[Dict[str, Any]] = None
+    ) -> Any:
         """通用调用任意 MCP 工具。"""
         return self._run_async(self._call_tool_async(tool_name, arguments))
 
@@ -146,7 +176,9 @@ class MCPAgentSkill:
     def submit_opt_mission(self, task_directory: str) -> Any:
         return self.call_tool("submit_opt_mission", {"task_directory": task_directory})
 
-    def extract_opt_info(self, task_directory: str, get_plot: bool = True, visualize: bool = False) -> Any:
+    def extract_opt_info(
+        self, task_directory: str, get_plot: bool = True, visualize: bool = False
+    ) -> Any:
         return self.call_tool(
             "extract_opt_info",
             {
@@ -156,7 +188,9 @@ class MCPAgentSkill:
             },
         )
 
-    def submit_scf_mission(self, task_directory: str, custom_incar: Optional[Dict[str, Any]] = None) -> Any:
+    def submit_scf_mission(
+        self, task_directory: str, custom_incar: Optional[Dict[str, Any]] = None
+    ) -> Any:
         return self.call_tool(
             "submit_scf_mission",
             {
@@ -172,10 +206,47 @@ class MCPAgentSkill:
         return self.call_tool("submit_band_mission", {"task_directory": task_directory})
 
     def extract_band_info(self, task_directory: str, plot_band: bool = True) -> Any:
-        return self.call_tool("extract_band_info", {"task_directory": task_directory, "plot_band": plot_band})
+        return self.call_tool(
+            "extract_band_info",
+            {"task_directory": task_directory, "plot_band": plot_band},
+        )
 
     def excute_command(self, command: str) -> Any:
         return self.call_tool("excute_command", {"command": command})
+
+    def predict_band_gap(self, formula: str | list[str]) -> Any:
+        return self.call_tool("predict_band_gap", {"formula": formula})
+
+    def set_task_progress(
+        self,
+        project_name: str,
+        description: str = "",
+        step_name: str = "",
+        status: str = "",
+    ) -> Any:
+        return self.call_tool(
+            "set_task_progress",
+            {
+                "project_name": project_name,
+                "description": description,
+                "step_name": step_name,
+                "status": status,
+            },
+        )
+
+    def list_all_projects(self) -> Any:
+        return self.call_tool("list_all_projects")
+
+    def get_project_workflow(self, project_name: str) -> Any:
+        return self.call_tool("get_project_workflow", {"project_name": project_name})
+
+    def read_file(self, file_path: str) -> Any:
+        return self.call_tool("read_file", {"file_path": file_path})
+
+    def get_material_all_infomation_by_id(self, material_id: str) -> Any:
+        return self.call_tool(
+            "get_material_all_infomation_by_id", {"material_id": material_id}
+        )
 
 
 if __name__ == "__main__":

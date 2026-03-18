@@ -2,6 +2,41 @@
 
 本 README 介绍 `mpmcp.py` 中可用的每个工具函数、参数格式和推荐执行规范。请在启动 `mpmcp.py` 并正确设置 MP_API_KEY 后调用。
 
+## 快速开始 - 网页智能体
+
+### 1. 安装依赖
+
+```bash
+# 安装 Streamlit
+pip install streamlit openai
+
+# 确保 MCP 服务正在运行
+python mpmcp.py
+```
+
+### 2. 配置环境变量
+
+复制 `.env.example` 为 `.env` 并填入配置：
+
+```bash
+cp .env.example .env
+# 编辑 .env 文件，填入你的 API Keys
+```
+
+### 3. 启动网页
+
+```bash
+streamlit run web_app.py
+```
+
+### 4. 使用方式
+
+1. 打开浏览器访问 `http://localhost:8501`
+2. 点击左侧「连接 MCP 服务」
+3. 选择功能面板或使用 AI 对话
+
+---
+
 ## 1. 基础辅助工具
 
 ### `get_time()`
