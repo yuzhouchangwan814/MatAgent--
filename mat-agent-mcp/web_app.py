@@ -22,6 +22,9 @@ if "mcp_skill" not in st.session_state:
 if "mcp_connected" not in st.session_state:
     st.session_state.mcp_connected = False
 
+if "selected_material" not in st.session_state:
+    st.session_state.selected_material = None
+
 st.markdown(
     """
 <style>
@@ -220,6 +223,65 @@ def material_search_panel():
                     col1.markdown(f"**对称性:** {r.get('symmetry', 'N/A')}")
                     if col2.button("📊 查看结构", key=f"view_{r.get('material_id')}"):
                         st.session_state.selected_material = r.get("material_id")
+
+        # 处理查看结构请求
+        if (
+            "selected_material" in st.session_state
+            and st.session_state.selected_material
+        ):
+            st.divider()
+            st.markdown(f"**查看材料: {st.session_state.selected_material}**")
+            with st.spinner("获取结构信息..."):
+                try:
+                    structure_result = (
+                        st.session_state.mcp_skill.get_material_structure(
+                            material_id=st.session_state.selected_material,
+                            get_plot=True,
+                            get_sites=True,
+                        )
+                    )
+                    st.write("调试信息:", structure_result)
+                    if isinstance(structure_result, dict):
+                        if "error" in structure_result:
+                            st.error(
+                                structure_result.get(
+                                    "message", structure_result.get("error")
+                                )
+                            )
+                        else:
+                            # 显示结构信息
+                            sdict = structure_result.get("structure_dict", {})
+                            lattice = sdict.get("lattice_parameters", {})
+                            st.markdown(f"""
+                            **晶体结构信息:**
+                            - 化学式: {sdict.get("formula", "N/A")}
+                            - 空间群: {sdict.get("space_group_symbol", "N/A")} (No. {sdict.get("space_group_number", "N/A")})
+                            - 晶格参数: a={lattice.get("a", "N/A")} Å, b={lattice.get("b", "N/A")} Å, c={lattice.get("c", "N/A")} Å
+                            """)
+                            # 显示图片
+                            if "image_url" in structure_result:
+                                st.image(
+                                    structure_result["image_url"], caption="晶体结构图"
+                                )
+                            if "message" in structure_result:
+                                for msg in structure_result["message"]:
+                                    if isinstance(msg, dict) and "3d_image_url" in msg:
+                                        st.markdown(
+                                            f"[查看 3D 结构]({msg['3d_image_url']})"
+                                        )
+                    elif isinstance(structure_result, str):
+                        st.text(structure_result)
+                except Exception as e:
+                    import traceback
+
+                    st.error(f"获取结构失败: {e}")
+                    with st.expander("查看详细错误"):
+                        st.code(traceback.format_exc())
+
+            # 添加清除选择按钮
+            if st.button("❌ 清除选择"):
+                st.session_state.selected_material = None
+                st.rerun()
         elif isinstance(results, dict) and "error" in results:
             st.error(results.get("message", results.get("error")))
 
@@ -276,33 +338,47 @@ def structure_builder_panel():
             elif scaling == "2×2×2":
                 scaling_matrix = 2
 
-            db_path = "materials.db" if add_db else None
+            db_path = "materials.db" if add_db else ""
 
-            result = st.session_state.mcp_skill.build_structure(
-                a=a,
-                b=b,
-                c=c,
-                alpha=alpha,
-                beta=beta,
-                gamma=gamma,
-                elements=elements,
-                frac_coord=coords,
-                scaling_matrix=scaling_matrix,
-                save_to_cif=save_cif,
-                add_to_database=db_path,
-            )
+            # 只在需要时传递参数
+            kwargs = {
+                "a": a,
+                "b": b,
+                "c": c,
+                "alpha": alpha,
+                "beta": beta,
+                "gamma": gamma,
+                "elements": elements,
+                "frac_coord": coords,
+                "scaling_matrix": scaling_matrix,
+                "save_to_cif": save_cif,
+            }
+            if db_path:
+                kwargs["add_to_database"] = db_path
+
+            result = st.session_state.mcp_skill.build_structure(**kwargs)
 
             if isinstance(result, dict):
                 if "error" in result:
-                    st.error(result.get("message", result.get("error")))
+                    st.error(f"构建失败: {result.get('message', result.get('error'))}")
                 else:
                     st.success("结构构建成功!")
                     if "image" in result:
                         st.image(result["image"], caption="晶体结构")
                     if "3d_image_url" in result:
                         st.markdown(f"[查看 3D 结构]({result['3d_image_url']})")
+            elif isinstance(result, str):
+                st.success("结构构建成功!")
+                st.text(result)
             else:
                 st.success("结构构建成功!")
+                st.json(result)
+        except Exception as e:
+            import traceback
+
+            st.error(f"构建失败: {e}")
+            with st.expander("查看详细错误"):
+                st.code(traceback.format_exc())
 
         except Exception as e:
             st.error(f"构建失败: {e}")
@@ -329,13 +405,20 @@ def ml_prediction_panel():
                 try:
                     result = st.session_state.mcp_skill.predict_band_gap(formula_input)
 
+                    # 调试：打印原始结果
+                    st.write(f"调试信息: {result}")
+
+                    # 处理不同格式的结果
                     if isinstance(result, dict):
                         if "error" in result:
                             st.error(result.get("message", result.get("error")))
                         else:
+                            # 处理 predicted_band_gap 可能是列表的情况
                             pred_gap = result.get(
-                                "predicted_band_gap", result.get("result", "N/A")
+                                "predicted_band_gap", result.get("result")
                             )
+                            if isinstance(pred_gap, list):
+                                pred_gap = pred_gap[0] if pred_gap else "N/A"
                             st.markdown(
                                 f"""
                             <div class="result-card">
@@ -346,11 +429,28 @@ def ml_prediction_panel():
                             """,
                                 unsafe_allow_html=True,
                             )
+                    elif isinstance(result, list):
+                        # 处理列表格式的结果
+                        pred_gap = result[0] if result else "N/A"
+                        st.markdown(
+                            f"""
+                        <div class="result-card">
+                            <h3>预测结果</h3>
+                            <p>化学式: <b>{formula_input}</b></p>
+                            <p>预测带隙: <b style="font-size: 24px; color: #1E88E5;">{pred_gap} eV</b></p>
+                        </div>
+                        """,
+                            unsafe_allow_html=True,
+                        )
                     else:
                         st.markdown(f"**预测带隙: {result} eV**")
 
                 except Exception as e:
+                    import traceback
+
                     st.error(f"预测失败: {e}")
+                    with st.expander("查看详细错误"):
+                        st.code(traceback.format_exc())
 
     with tab2:
         st.info("更多 ML 预测功能开发中...")

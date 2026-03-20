@@ -33,6 +33,26 @@ class MCPAgentSkill:
         if result is None:
             return None
 
+        # 处理 CallToolResult 对象（FastMCP 返回的对象）
+        if hasattr(result, "content"):
+            # 这是一个 CallToolResult 对象
+            content = result.content
+            if isinstance(content, list) and len(content) > 0:
+                # 取第一个 content item
+                first_content = content[0]
+                if hasattr(first_content, "text"):
+                    try:
+                        return json.loads(first_content.text)
+                    except (json.JSONDecodeError, AttributeError):
+                        return {"result": first_content.text}
+                elif hasattr(first_content, "structured_content"):
+                    # structured_content 已经是字典
+                    return first_content.structured_content
+                elif isinstance(first_content, dict):
+                    return first_content
+            # 如果没有 content，返回原始对象的字符串形式
+            return {"result": str(result)}
+
         if isinstance(result, dict):
             return result
 
@@ -82,6 +102,11 @@ class MCPAgentSkill:
         self, tool_name: str, arguments: Optional[Dict[str, Any]] = None
     ) -> Any:
         """通用调用任意 MCP 工具。"""
+        # 过滤掉 None 和空字符串参数
+        if arguments:
+            arguments = {
+                k: v for k, v in arguments.items() if v is not None and v != ""
+            }
         return self._run_async(self._call_tool_async(tool_name, arguments))
 
     def get_time(self) -> str:

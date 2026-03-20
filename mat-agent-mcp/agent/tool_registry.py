@@ -147,7 +147,7 @@ def create_tool_registry(mcp_skill=None) -> ToolRegistry:
     registry.register(
         "get_material_structure",
         None,
-        "获取指定材料的晶体结构信息，包括空间群、晶格参数、原子位置等，可生成结构图和3D可视化",
+        "获取指定材料的晶体结构信息，包括空间群、晶格参数、原子位置等，可生成结构图和3D可视化。注意：material_id 参数必须是 mp-xxxx 格式，如 mp-546794、mp-149 等",
         {
             "type": "object",
             "properties": {

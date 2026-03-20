@@ -56,7 +56,17 @@ class MaterialAgent:
         try:
             func = getattr(self.mcp_skill, tool_name, None)
             if not func:
-                return {"error": f"工具 {tool_name} 不存在"}
+                available_tools = [
+                    "get_material_structure",
+                    "get_band_gap",
+                    "search_materials",
+                    "get_material_all_infomation_by_id",
+                    "predict_band_gap",
+                    "build_structure",
+                ]
+                return {
+                    "error": f"工具 {tool_name} 不存在。正确工具名包括: {', '.join(available_tools)}"
+                }
 
             clean_args = {}
             for k, v in arguments.items():
@@ -66,7 +76,16 @@ class MaterialAgent:
             result = func(**clean_args)
             return result
         except Exception as e:
-            return {"error": str(e)}
+            import traceback
+
+            error_msg = str(e)
+            # 如果是工具调用错误，给出更清晰的提示
+            if (
+                "does not exist" in error_msg.lower()
+                or "not found" in error_msg.lower()
+            ):
+                return {"error": f"工具调用失败：{error_msg}"}
+            return {"error": f"执行工具时出错: {error_msg}"}
 
     def _format_result(self, tool_name: str, result: Any) -> str:
         if isinstance(result, dict):
