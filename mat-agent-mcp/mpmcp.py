@@ -385,7 +385,7 @@ from ase import Atoms
 from itertools import product
 import numpy as np
 def get_structure_plot(structure: Structure,
-                          repeat: bool = True, rotation: str ='10x,10y,0z') -> dict:
+                        repeat: bool = True, rotation: str ='10x,10y,0z') -> dict:
     """
     输入指定的晶体结构并返回预览图。
     参数:
@@ -1230,17 +1230,19 @@ async def read_file(file_path: str) -> dict:
 if __name__ == "__main__":
     try:
         # 启动MCP服务器
-        # connection = tryssh.VaspTaskInitializer(HOST, USERNAME, PASSWORD, PORT)
-        # for i in range(5):
-        #     try:
-        #         with connection as vasp_task:
-        #             if vasp_task.link():
-        #                 print("已成功连接到远程服务器")
-        #                 break
-        #     except Exception as e:
-        #         print(f"连接远程服务器失败，正在重试... ({i+1}/5)")
-        #         if i == 4:
-        #             raise e
+        print(HOST, USERNAME, PASSWORD, PORT)
+        connection = tryssh.VaspTaskInitializer(HOST, USERNAME, PASSWORD, PORT)
+        for i in range(5):
+            try:
+                with connection as vasp_task:
+                    if vasp_task.link():
+                        print("已成功连接到远程服务器")
+                        break
+            except Exception as e:
+                print(f"连接远程服务器失败，正在重试... ({i+1}/5)")
+                print(e)
+                if i == 4:
+                    raise e
         server = flask_plot.MemoryImageServer(port=6760)
         server.start()
         crystalmanager = flask_builder.CrystalManager()

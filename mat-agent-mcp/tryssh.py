@@ -112,7 +112,7 @@ class VaspTaskInitializer:
                     outcar_info['free_energy_per_atom'] = outcar_info['free_energy'] / outcar.natoms
                     outcar_info['num_atoms'] = outcar.natoms
                 
-                 # 最后一步的力
+                # 最后一步的力
                 if outcar.forces is not None and len(outcar.forces) > 0:
                     forces = outcar.forces
                     outcar_info['final_forces'] = forces[-1].tolist()

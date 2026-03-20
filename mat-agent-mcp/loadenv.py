@@ -20,7 +20,7 @@ class Config:
         return int(port) if port and port.isdigit() else None
 
     def get_username(self) -> Optional[str]:
-        return os.getenv('USERNAME')
+        return os.getenv('SSH_USERNAME')
 
     def get_password(self) -> Optional[str]:
         return os.getenv('PASSWORD')
@@ -38,9 +38,10 @@ class Config:
 # 使用示例
 if __name__ == "__main__":
     config = Config()
-    if config.validate_config():
-        api_key = config.get_api_key()
-        print(f"API Key: {api_key}")
-        # 使用 api_key...
-    else:
-        print("请设置必要的环境变量")
+    # if config.validate_config():
+    #     api_key = config.get_api_key()
+    #     print(f"API Key: {api_key}")
+    #     # 使用 api_key...
+    # else:
+    #     print("请设置必要的环境变量")
+    print(config.validate_config())
